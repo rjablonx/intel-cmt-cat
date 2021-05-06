@@ -39,3 +39,20 @@ Successfully created virtual environment!
 ...
 ```
 All required dependencies are now installed in virtualenv.
+
+
+### Creating evalutation mTLS certificate for testing
+
+For evaluation purposes, the appqos/ca/ directory contains sample script called 'gen_test_certs.sh' - it can be used for generating certifacates for the AppQoS and the client (e.g: curl) - keep in mind that those keys are not for production use.
+
+```
+$ cd appqos/ca
+$ ./gen_test_certs.sh
+```
+
+This script will create:
+- ca certificate
+- appqos certificate
+- client certificate
+
+_NOTE: Generated keys are not for production use - you should obtain production certificate and keys from your administrator. More information about requirements for AppQoS mTLS certificates can be found in  [Advanced_AppQoS_Usage_Guide.txt](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/doc/Advanced_AppQoS_Usage_Guide.txt)_
