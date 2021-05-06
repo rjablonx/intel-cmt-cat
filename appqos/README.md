@@ -43,7 +43,7 @@ All required dependencies are now installed in virtualenv.
 
 ### Creating evalutation mTLS certificate for testing
 
-For evaluation purposes, the appqos/ca/ directory contains sample script called 'gen_test_certs.sh' - it can be used for generating certifacates for the AppQoS and the client (e.g: curl) - keep in mind that those keys are not for production use.
+The appqos/ca/ directory contains sample script called 'gen_test_certs.sh' - it can be used for generating certifacates for the AppQoS and the client (e.g: curl) - keep in mind that those keys are not for production use.
 
 ```
 $ cd appqos/ca
