@@ -4,7 +4,7 @@ AppQoS is a proof-of-concept software created to demonstrate the use of
 Intel(R) RDT technologies (CAT, MBA) to improve QoS for applications
 via partitioning system resources.
 
-_NOTE: This is just a quick start-up guide. For mor informations about AppQoS please see [AppQoS README](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/README)_
+_NOTE: This is just a quick start-up guide. For mor informations about AppQoS please see [Advanced_AppQoS_Usage_Guide.txt](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/doc/Advanced_AppQoS_Usage_Guide.txt)_
 
 # Installation
 
@@ -55,7 +55,7 @@ This script will create:
 - appqos certificate
 - client certificate
 
-_NOTE: Generated keys are not for production use - you should obtain production certificate and keys from your administrator. More information about requirements for AppQoS mTLS certificates can be found in  [Advanced_AppQoS_Usage_Guide.txt](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/doc/Advanced_AppQoS_Usage_Guide.txt)_
+_NOTE: Generated keys are not for production use - you should obtain production certificate and keys from your administrator. More information about requirements for AppQoS mTLS certificates can be found in [Advanced_AppQoS_Usage_Guide.txt](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/doc/Advanced_AppQoS_Usage_Guide.txt)_
 
 # Configuration
 
@@ -151,7 +151,7 @@ $ ls
 ca.crt  client_appqos.crt  client_appqos.key
 ```
 
-_NOTE: More information about requirements for AppQoS mTLS client certificates can be found in  [Advanced_AppQoS_Usage_Guide.txt](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/doc/Advanced_AppQoS_Usage_Guide.txt)_
+_NOTE: More information about requirements for AppQoS mTLS client certificates can be found in [Advanced_AppQoS_Usage_Guide.txt](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/doc/Advanced_AppQoS_Usage_Guide.txt)_
 
 ### Capabilities queries via REST API
 It is also possible to get supported capabilities information via REST API
@@ -173,3 +173,315 @@ $ curl https://localhost:5000/caps/rdt_iface -X GET --cert client_appqos.crt --k
 ```
 _NOTE: OS is current RDT interface, but MSR interface is also supported._
 
+**List MBA CTRL status**
+```
+$ curl https://localhost:5000/caps/mba_ctrl -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "supported": true,
+  "enabled": false
+}
+```
+_NOTE: MBA CTRL is supported but not enabled_
+
+Verify MBA CTRL status
+```
+$ mount | grep resctrl
+
+resctrl on /sys/fs/resctrl type resctrl (rw,relatime)
+```
+_NOTE: resctrl fs is mounted but no "mba_MBps" option is used, MBA CTRL is not enabled._
+
+**List RDT capabilities**
+```
+$ curl https://localhost:5000/caps -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "capabilities": [
+    "cat",
+    "mba"
+  ]
+}
+```
+_NOTE: RDT supports CAT and MBA._
+
+### Pool operations via REST API
+
+**Default pool**
+
+If there is no "Default" pool (with "id" equal to 0) defined in config file,
+AppQoS will dynamically create one on start-up.
+
+All unassigned cores will be assigned to "Default" pool,
+MBA will be configured to "no throttling" (100% (default) or ~2^32MBps (MBA CTRL enabled))
+and CAT CBM to all cache ways.
+
+**List all configured pools**
+```
+$ curl https://localhost:5000/pools -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+[
+  {
+    "id": 0,
+    "mba": 100,
+    "cbm": 2047,
+    "name": "Default",
+    "cores": [
+      0,
+      1,
+      2,
+...
+      45,
+      46,
+      47
+    ]
+  }
+]
+```
+
+_NOTE: The only configured pool is a "Default" one, with MBA configured to "no throttling" (100%) `"mba": 100`._
+
+**Modify "Default" pool**
+
+Modify "Default" pool to exclude multiple cores.
+
+```
+$ curl https://localhost:5000/pools/0 -X PUT --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"cores": [5,6,7,8,9,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47]}'
+
+{"message": "POOL 0 updated"}
+```
+**Check new "Default" pool configuration**
+
+```
+$ curl https://localhost:5000/pools/0 -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "id": 0,
+  "mba": 100,
+  "cbm": 2047,
+  "name": "Default",
+  "cores": [
+    5,
+    6,
+    7,
+...
+    45,
+    46,
+    47
+  ]
+}
+
+```
+
+_NOTE: New cores configuration `"cores": [5, 6, 7, ... , 45, 46, 47].`_
+
+**Create new pool**
+
+```
+$ curl https://localhost:5000/pools -X POST --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"name": "HP", "cores": [0,1,2,3,4,10,11,12,13,14,15,16,25,34,35,36,37,38,39,40], "mba": 100, "cbm": 2047}'
+
+{"id": 7, "message": "New POOL 7 added"}
+```
+
+_NOTE: New pool with "id=7" was created._
+
+Get new pool details
+
+```
+$ curl https://localhost:5000/pools/7 -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "name": "HP",
+  "cores": [
+    0,
+    1,
+    2,
+...
+    38,
+    39,
+    40
+  ],
+  "mba": 100,
+  "cbm": 2047,
+  "id": 7
+}
+```
+_NOTE: New pool's MBA is configured to 100% `"mba": 100`._
+
+**Modify new pool's MBA**
+
+```
+$ curl https://localhost:5000/pools/7 -X PUT --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"mba": 70}'
+
+{"message": "POOL 7 updated"}
+```
+Get new pool details
+```
+$ curl https://localhost:5000/pools/7 -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "name": "HP",
+  "cores": [
+    0,
+    1,
+    2,
+...
+    38,
+    39,
+    40
+  ],
+  "mba": 70,
+  "cbm": 2047,
+  "id": 7
+}
+```
+_NOTE: New pool's MBA is configured to 70% `"mba": 70`._
+
+### Enable MBA CTRL
+
+**Enable RDT MBA CTRL**
+```
+$ curl https://localhost:5000/caps/mba_ctrl -X PUT --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"enabled": true}'
+
+{"message": "Please remove all Pools first!"}
+```
+_NOTE: MBA CTRL state can only be changed when there are no Pools configured (other than "default" Pool #0)
+(e.g.: all non-default, configured Pools were removed)._
+```
+$ curl https://localhost:5000/pools/7 -X DELETE --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{"message": "POOL 7 deleted"}
+```
+
+```
+curl https://localhost:5000/caps/mba_ctrl -X PUT --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"enabled": true}'
+
+{"message": "MBA CTRL status changed."}
+```
+_NOTE: After MBA CTRL state change, "Default" pool is reset to default values (all cores, full cache and MEM BW access)._
+
+**Verify MBA CTRL status**
+```
+$ mount | grep resctrl
+
+resctrl on /sys/fs/resctrl type resctrl (rw,relatime,mba_MBps)
+```
+_NOTE: resctrl fs mounted with "mba_MBps" option, MBA CTRL is now enabled._
+```
+$ curl https://localhost:5000/caps/mba_ctrl -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "supported": true,
+  "enabled": true
+}
+
+$ curl https://localhost:5000/caps/mba -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "mba_enabled": false,
+  "mba_bw_enabled": true
+}
+```
+_NOTE: MBA CTRL is now enabled. User can use "mba_bw" to configure pool's MBA allocation._
+
+**Verify MBA configuration for "Default" Pool**
+```
+$ curl https://localhost:5000/pools -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+[
+  {
+    "id": 0,
+    "mba_bw": 4294967295,
+    "cbm": 2047,
+    "name": "Default",
+    "cores": [
+      0,
+      1,
+      2,
+...
+      45,
+      46,
+      47
+    ]
+  }
+]
+```
+_NOTE: MBA for Pool #0 set to maximum value 4294967295MBps (~2^32MBps) `"mba_bw": 4294967295`._
+
+**Create new pool and limit its MBA to ~5GBps and then ~10GBps**
+
+Modify "Default" pool to exclude multiple cores
+
+```
+$ curl https://localhost:5000/pools/0 -X PUT --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"cores": [5,6,7,8,9,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33,41,42,43,44,45,46,47]}'
+
+{"message": "POOL 0 updated"}
+```
+
+Create new pool with 5GBps MBA limit
+```
+$ curl https://localhost:5000/pools -X POST --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"name": "HP", "cores": [0,1,2,3,4,10,11,12,13,14,15,16,25,34,35,36,37,38,39,40], "mba_bw": 5000, "cbm": 2047}'
+
+{"id": 7, "message": "New POOL 7 added"}
+```
+
+Verify MBA configuration for new pool, COS#7
+```
+$ curl https://localhost:5000/pools/7 -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "name": "HP",
+  "cores": [
+    0,
+    1,
+    2,
+...
+    38,
+    39,
+    40
+  ],
+  "mba_bw": 5000,
+  "cbm": 2047,
+  "id": 7
+}
+
+cat /sys/fs/resctrl/COS7/schemata
+
+    L3:0=7ff;1=7ff
+    MB:0=5000;1=5000
+```
+_NOTE: Both AppQoS and Resctrl show new MBA configuration (5000MBps) for Pool #7._
+
+Modify new pool MBA to 10GBps
+```
+$ curl https://localhost:5000/pools/7 -X PUT --cert client_appqos.crt --key client_appqos.key --cacert ca.crt -H "Content-Type: application/json" -d '{"mba_bw": 10000}'
+
+{"message": "POOL 7 updated"}
+```
+Verify new pool MBA configuration
+
+```
+$ curl https://localhost:5000/pools/7 -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
+
+{
+  "name": "HP",
+  "cores": [
+    0,
+    1,
+    2,
+...
+    38,
+    39,
+    40
+  ],
+  "mba_bw": 10000,
+  "cbm": 2047,
+  "id": 7
+}
+
+$ cat /sys/fs/resctrl/COS7/schemata
+
+    L3:0=7ff;1=7ff
+    MB:0=10000;1=10000
+```
+_NOTE: Both AppQoS and Resctrl show new MBA configuration (10000MBps) for Pool #7._
