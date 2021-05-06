@@ -160,7 +160,7 @@ _NOTE: 5000 is default REST API port. Is also assumed that every curl command wi
 
 **List supported and current RDT interface**
 ```
-$ curl https://localhost:5000/caps/rdt_iface -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt | jq
+$ curl https://localhost:5000/caps/rdt_iface -X GET --cert client_appqos.crt --key client_appqos.key --cacert ca.crt
 
 {
   "interface": "os",
@@ -169,6 +169,7 @@ $ curl https://localhost:5000/caps/rdt_iface -X GET --cert client_appqos.crt --k
     "os"
   ]
 }
+
 ```
 _NOTE: OS is current RDT interface, but MSR interface is also supported._
 
