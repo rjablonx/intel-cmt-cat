@@ -122,3 +122,19 @@ WORKON_HOME=../venv/appqos_silpixa00399791 pipenv run ./appqos.py
 ```
 
 AppQoS is up and runnig ready for REST API commands.
+
+### System capabilities detection
+During start-up process AppQoS performs system capabilites detection and prints out info on the console.
+```
+2020-12-14 19:30:52,497 INFO  Interface MSR, MBA BW: unsupported.
+2020-12-14 19:30:52,527 INFO  Interface OS, MBA BW: supported.
+2020-12-14 19:30:52,527 INFO  Supported RDT interfaces: ['msr', 'os']
+```
+System supports RDT MSR and OS interfaces. MBA BW/MBA CTRL is supported only for OS interface.
+```
+2020-12-14 19:30:52,539 INFO  RDT initialized with 'os' interface
+2020-12-14 19:30:52,701 INFO  Supported capabilities:
+2020-12-14 19:30:52,701 INFO  ['cat', 'mba']
+```
+RDT is initialized with OS interface and supports both CAT and MBA.
+
