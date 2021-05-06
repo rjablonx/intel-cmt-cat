@@ -56,3 +56,69 @@ This script will create:
 - client certificate
 
 _NOTE: Generated keys are not for production use - you should obtain production certificate and keys from your administrator. More information about requirements for AppQoS mTLS certificates can be found in  [Advanced_AppQoS_Usage_Guide.txt](https://raw.githubusercontent.com/intel/intel-cmt-cat/master/appqos/doc/Advanced_AppQoS_Usage_Guide.txt)_
+
+# Configuration
+
+AppQoS reads its initial configuration from configuration file. During the runtime it accepts commands via REST API.
+
+_NOTE: None of configuration changes made via REST API are saved to configuration file._
+
+### Configuration file
+By default AppQoS will attempt to read from "appqos.conf" file from current folder.
+
+Create ./appqos.conf file.
+```
+cat ./appqos.conf
+{
+    "auth": {
+        "password": "password",
+        "username": "admin"
+    },
+
+    "rdt_iface": {
+        "interface": "os"
+    },
+
+    "mba_ctrl": {
+        "enabled": false
+    },
+
+    "apps": [],
+
+    "pools": []
+}
+```
+Basic configuration file with essential configuration only:
+ - REST API Authentication details,
+ - RDT interface and MBA mode configuration
+
+# Execution
+
+"make run" command executes AppQoS in virtualenv with all required dependencies already installed.
+
+_NOTE: AppQoS requires root privileges._
+
+```
+$ sudo make run
+
+WORKON_HOME=../venv/appqos_silpixa00399791 pipenv run ./appqos.py
+2020-12-14 19:30:52,497 INFO  Interface MSR, MBA BW: unsupported.
+2020-12-14 19:30:52,527 INFO  Interface OS, MBA BW: supported.
+2020-12-14 19:30:52,527 INFO  Supported RDT interfaces: ['msr', 'os']
+2020-12-14 19:30:52,539 INFO  RDT initialized with 'os' interface
+2020-12-14 19:30:52,701 INFO  Supported capabilities:
+2020-12-14 19:30:52,701 INFO  ['cat', 'mba']
+ * Serving Flask app "rest.rest_server" (lazy loading)
+ * Environment: production
+   WARNING: This is a development server. Do not use it in a production deployment.
+   Use a production WSGI server instead.
+ * Debug mode: off
+2020-12-14 19:30:52,727 INFO   * Running on https://127.0.0.1:5000/ (Press CTRL+C to quit)
+2020-12-14 19:30:52,734 INFO  SST-BF not enabled
+2020-12-14 19:30:52,734 INFO  Power Profiles/EPP not enabled
+2020-12-14 19:30:52,734 INFO  Configuring RDT
+2020-12-14 19:30:52,896 INFO  RDT MBA CTRL disabled
+2020-12-14 19:30:52,903 INFO  Configuration changed, processing new config...
+```
+
+AppQoS is up and runnig ready for REST API commands.
